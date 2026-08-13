@@ -1,12 +1,18 @@
 import { useState } from 'react'
+import { Form, Formik } from 'formik'
+import * as Yup from 'yup'
 import { Alert, Box, Button, Card, CardContent, Container, TextField, Typography } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { ROLE_HOME } from '../../constants/roles'
+import FormikTextField from '../../components/common/FormikTextField'
+
+const loginSchema = Yup.object({
+  email: Yup.string().trim().email('Enter a valid email address.').required('Email is required.'),
+  password: Yup.string().required('Password is required.'),
+})
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('superadmin@smartstock.local')
-  const [password, setPassword] = useState('SmartStock!123')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login, user } = useAuth()
@@ -15,12 +21,11 @@ export default function LoginPage() {
 
   const from = location.state?.from?.pathname || ROLE_HOME[user?.role_code] || '/login'
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  async function handleSubmit(values) {
     setLoading(true)
     setError('')
     try {
-      const session = await login(email, password)
+      const session = await login(values.email, values.password)
       navigate(ROLE_HOME[session.user.role_code] || '/', { replace: true })
     } catch (err) {
       setError(err.response?.data?.detail || 'Unable to sign in. Check your credentials.')
@@ -68,28 +73,15 @@ export default function LoginPage() {
               </Alert>
             ) : null}
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 2 }}>
-              <TextField
-                label="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                fullWidth
-                autoComplete="email"
-                sx={{ input: { color: '#fff' }, label: { color: 'rgba(255,255,255,0.7)' } }}
-              />
-              <TextField
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                fullWidth
-                autoComplete="current-password"
-                sx={{ input: { color: '#fff' }, label: { color: 'rgba(255,255,255,0.7)' } }}
-              />
-              <Button type="submit" variant="contained" size="large" disabled={loading}>
-                {loading ? 'Signing in...' : 'Login'}
-              </Button>
-            </Box>
+            <Formik initialValues={{ email: 'superadmin@smartstock.local', password: 'SmartStock!123' }} validationSchema={loginSchema} onSubmit={handleSubmit}>
+              <Box component={Form} sx={{ display: 'grid', gap: 2 }}>
+                <FormikTextField name="email" label="Email" fullWidth autoComplete="email" sx={{ input: { color: '#fff' }, label: { color: 'rgba(255,255,255,0.7)' } }} />
+                <FormikTextField name="password" label="Password" type="password" fullWidth autoComplete="current-password" sx={{ input: { color: '#fff' }, label: { color: 'rgba(255,255,255,0.7)' } }} />
+                <Button type="submit" variant="contained" size="large" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Login'}
+                </Button>
+              </Box>
+            </Formik>
 
             <Box sx={{ mt: 3, color: 'rgba(255,255,255,0.75)' }}>
               <Typography variant="body2">Demo credentials:</Typography>

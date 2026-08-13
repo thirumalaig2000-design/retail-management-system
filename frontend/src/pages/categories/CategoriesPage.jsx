@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Formik } from 'formik'
+import * as Yup from 'yup'
 import { Alert, Box, TextField } from '@mui/material'
 import PageHeader from '../../components/common/PageHeader'
 import SearchInput from '../../components/common/SearchInput'
@@ -6,8 +8,10 @@ import DataTable from '../../components/common/DataTable'
 import EntityDialog from '../../components/common/EntityDialog'
 import StatusChip from '../../components/common/StatusChip'
 import { categoryService } from '../../services/categoryService'
+import FormikTextField from '../../components/common/FormikTextField'
 
 const emptyForm = { name: '', description: '', is_active: true }
+const categorySchema = Yup.object({ name: Yup.string().trim().max(100, 'Name must be 100 characters or fewer.').required('Name is required.'), description: Yup.string().max(500, 'Description must be 500 characters or fewer.') })
 
 export default function CategoriesPage() {
   const [items, setItems] = useState([])
@@ -15,7 +19,6 @@ export default function CategoriesPage() {
   const [error, setError] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
 
   async function loadData() {
@@ -33,24 +36,21 @@ export default function CategoriesPage() {
 
   function openCreate() {
     setEditing(null)
-    setForm(emptyForm)
     setDialogOpen(true)
   }
 
   function openEdit(item) {
     setEditing(item)
-    setForm({ name: item.name || '', description: item.description || '', is_active: item.is_active })
     setDialogOpen(true)
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  async function handleSubmit(values) {
     setSubmitting(true)
     try {
       if (editing) {
-        await categoryService.update(editing.id, form)
+        await categoryService.update(editing.id, values)
       } else {
-        await categoryService.create(form)
+        await categoryService.create(values)
       }
       setDialogOpen(false)
       loadData()
@@ -88,10 +88,14 @@ export default function CategoriesPage() {
         onDelete={handleDelete}
         onToggle={handleToggle}
       />
-      <EntityDialog open={dialogOpen} title={editing ? 'Edit Category' : 'Add Category'} onClose={() => setDialogOpen(false)} onSubmit={handleSubmit} submitting={submitting}>
-        <TextField label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <TextField multiline minRows={3} label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-      </EntityDialog>
+      <Formik enableReinitialize initialValues={editing ? { name: editing.name || '', description: editing.description || '', is_active: editing.is_active } : emptyForm} validationSchema={categorySchema} onSubmit={handleSubmit}>
+        {({ handleSubmit }) => (
+          <EntityDialog open={dialogOpen} title={editing ? 'Edit Category' : 'Add Category'} onClose={() => setDialogOpen(false)} onSubmit={handleSubmit} submitting={submitting}>
+            <FormikTextField name="name" label="Name" required />
+            <FormikTextField name="description" multiline minRows={3} label="Description" />
+          </EntityDialog>
+        )}
+      </Formik>
     </Box>
   )
 }

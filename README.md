@@ -243,6 +243,24 @@ cd backend
 
 ## Railway Deployment
 
+### Railway and Cloudflare Pages setup
+
+Deploy the two applications as separate services from the same repository:
+
+- **Railway backend service:** set **Root Directory** to `backend`. The committed
+  `backend/railway.toml` installs the Python application through Railpack, runs
+  migrations and static-file collection before deploy, starts Gunicorn, and uses
+  `/api/health/` as its health check.
+- **Cloudflare Pages frontend project:** set **Root Directory** to `frontend`,
+  use build command `npm run build`, and set build output directory to `dist`.
+  The committed `frontend/public/_redirects` file keeps React client-side routes
+  such as `/admin/dashboard` working after a direct refresh.
+
+Set `VITE_API_BASE_URL` on Cloudflare Pages to `https://<railway-backend-domain>/api`.
+After Cloudflare provides its public URL, add that exact HTTPS origin to the
+Railway backend's `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, and
+`CSRF_TRUSTED_ORIGINS` values.
+
 Set these values on Railway:
 
 - `DEBUG=False`

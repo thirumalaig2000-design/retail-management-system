@@ -73,8 +73,18 @@ export function AuthProvider({ children }) {
         return session
       },
       async logout() {
-        await logoutRequest()
-        setUser(null)
+        try {
+          await logoutRequest()
+        } catch {
+          // The session may already be expired or the network may be unavailable.
+          // Local logout should still succeed in either case.
+        } finally {
+          // A failed or expired refresh token must not leave the user signed in
+          // on this device. The server call is best-effort token blacklisting;
+          // clearing the local session is required for the UI logout flow.
+          storage.clearSession()
+          setUser(null)
+        }
       },
       setUser,
     }),
